@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rare Answer Twenty</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<script src="/qrcode.js"></script>
+<style>
+  :root {
+    --bg: #101a2e; --panel: #182540; --panel-2: #213152; --fg: #f3ecdc; --muted: #a9b2c6;
+    --accent: #f2b544; --accent-ink: #2a1c05; --good: #5fd39c; --bad: #f0706f; --line: #2f4267;
+    --display: "Unbounded", "Arial Black", Impact, sans-serif;
+    --body: "Atkinson Hyperlegible", "Helvetica Neue", Arial, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 17px; line-height: 1.5;
+    padding-top: max(24px, env(safe-area-inset-top, 0px)); padding-bottom: max(48px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 920px; margin: 0 auto; display: grid; gap: 20px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+  h1 { font-family: var(--display); font-weight: 900; font-size: clamp(22px, 4vw, 34px); margin: 0; text-wrap: balance; }
+  h1 span { color: var(--accent); }
+  .tally { font-family: var(--display); font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tally b { color: var(--fg); font-size: 20px; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin: 0; }
+  .panel { background: var(--panel); border-radius: 18px; padding: 24px; display: grid; gap: 16px; }
+  .panel p { margin: 0; }
+  .note { color: var(--muted); max-width: 62ch; }
+  .lede { font-size: 19px; max-width: 62ch; }
+  .rules { display: grid; gap: 10px; padding: 0; margin: 0; list-style: none; max-width: 70ch; }
+  .rules li { display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: start; }
+  .rules .n { font-family: var(--display); font-size: 26px; color: var(--accent); line-height: 1; padding-top: 2px; }
+
+  button { font: inherit; cursor: pointer; border: 0; border-radius: 12px; padding: 12px 20px; font-weight: 700; color: var(--fg); background: var(--panel-2); }
+  button.primary { background: var(--accent); color: var(--accent-ink); font-family: var(--display); font-size: 15px; }
+  button.quiet { background: transparent; color: var(--muted); text-decoration: underline; padding: 6px 8px; }
+  button.x { background: transparent; color: var(--muted); padding: 0 4px; font-size: 18px; line-height: 1; }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button[disabled] { opacity: 0.45; cursor: not-allowed; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  form { display: flex; flex-wrap: wrap; gap: 10px; }
+  input[type=text] { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 18px; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg); color: var(--fg); }
+  input[type=text]::placeholder { color: var(--muted); }
+  input.code { font-family: var(--display); text-transform: uppercase; letter-spacing: 0.3em; flex: 0 1 180px; }
+
+  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .mode { display: grid; gap: 14px; border: 2px solid var(--line); border-radius: 14px; padding: 18px; align-content: start; }
+  .mode h3 { margin: 0; font-family: var(--display); font-size: 16px; font-weight: 700; }
+
+  .status { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--bg); font-size: 14px; color: var(--muted); width: fit-content; max-width: 100%; }
+  .status.warn { color: var(--accent); }
+  .status.err { color: var(--bad); }
+  .status.ok { color: var(--good); }
+
+  .players { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; list-style: none; }
+  .players li { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: 999px; background: var(--bg); font-size: 15px; }
+  .players .dot { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--accent-ink); background: var(--accent); flex: none; }
+  .players .you { color: var(--accent); }
+  .players .tick { color: var(--good); font-weight: 700; }
+  .players .wait { color: var(--muted); }
+
+  /* room lobby: QR + code */
+  .invite { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
+  @media (max-width: 560px) { .invite { grid-template-columns: 1fr; justify-items: center; text-align: center; } }
+  .qr { background: #fff; padding: 12px; border-radius: 14px; width: fit-content; line-height: 0; }
+  .qr img, .qr canvas { display: block; }
+  .bigcode { font-family: var(--display); font-weight: 900; font-size: clamp(36px, 9vw, 64px); letter-spacing: 0.18em; color: var(--accent); line-height: 1; }
+  .linkline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 15px; color: var(--muted); word-break: break-all; }
+  .linkline code { color: var(--fg); font-family: inherit; }
+
+  .round { display: grid; grid-template-columns: 1fr 110px; gap: 20px; }
+  @media (max-width: 560px) { .round { grid-template-columns: 1fr; } .column { height: 90px; flex-direction: row-reverse; } .column .fill { width: var(--w, 100%); height: 100%; } }
+  .q { display: grid; gap: 14px; min-width: 0; align-content: start; }
+  .q h2 { font-family: var(--display); font-size: clamp(20px, 3.4vw, 28px); font-weight: 700; margin: 0; text-wrap: balance; line-height: 1.25; }
+  .column { background: var(--bg); border-radius: 14px; border: 2px solid var(--line); display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; height: 100%; min-height: 240px; position: relative; }
+  .column .fill { background: var(--accent); width: 100%; height: var(--h, 100%); }
+  .column .num { position: absolute; inset: auto 0 0 0; text-align: center; font-family: var(--display); font-weight: 900; font-size: 30px; padding: 8px 0; font-variant-numeric: tabular-nums; mix-blend-mode: difference; }
+  @media (max-width: 560px) { .column .num { inset: 0 12px auto auto; display: flex; align-items: center; } }
+
+  .passlist { display: grid; gap: 10px; padding: 0; margin: 0; list-style: none; }
+  .passlist li { display: grid; grid-template-columns: minmax(70px, 110px) 1fr auto; gap: 10px; align-items: center; background: var(--bg); border-radius: 12px; padding: 8px 10px; }
+  .passlist .name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .passlist input[type=text] { flex: none; font-size: 16px; padding: 8px 10px; background: var(--panel); }
+  .passlist .done { color: var(--good); font-weight: 700; }
+  .passlist button { padding: 8px 14px; }
+  @media (max-width: 420px) { .passlist li { grid-template-columns: 1fr auto; } .passlist .name { grid-column: 1 / -1; } }
+
+  .verdict { display: grid; gap: 10px; }
+  .verdict .big { font-family: var(--display); font-size: clamp(18px, 3vw, 24px); font-weight: 700; }
+  .verdict.ok .big { color: var(--good); }
+  .verdict.rare .big { color: var(--accent); }
+  .verdict.miss .big { color: var(--bad); }
+
+  .board { display: grid; gap: 6px; padding: 0; margin: 0; list-style: none; }
+  .board li { display: grid; grid-template-columns: minmax(80px, 1fr) minmax(0, 1.4fr) 56px; gap: 10px; align-items: center; font-size: 15px; }
+  .board .name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .board .bar { height: 22px; background: var(--bg); border-radius: 6px; overflow: hidden; position: relative; }
+  .board .bar i { display: block; height: 100%; width: var(--w, 0%); background: var(--accent); transition: width 1.2s cubic-bezier(.2,.8,.2,1); }
+  .board .bar.miss i { background: var(--bad); }
+  .board .bar.rare i { background: var(--good); }
+  .board .bar span { position: absolute; inset: 0; display: flex; align-items: center; padding: 0 8px; font-size: 13px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; mix-blend-mode: difference; }
+  .board .s { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+  .board .s.rare { color: var(--good); }
+  .board .s.miss { color: var(--bad); }
+  @media (prefers-reduced-motion: reduce) { .board .bar i { transition: none; } }
+
+  details { border-top: 1px solid var(--line); padding-top: 12px; }
+  summary { cursor: pointer; font-weight: 700; color: var(--muted); }
+  .answers { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px 14px; margin-top: 10px; padding: 0; list-style: none; }
+  .answers li { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--line); padding: 4px 0; font-size: 15px; }
+  .answers li .s { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 700; min-width: 2.5ch; text-align: right; }
+  .answers li.zero .s { color: var(--accent); }
+
+  .lead { display: grid; gap: 8px; padding: 0; margin: 0; list-style: none; }
+  .lead li { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .lead .rank { font-family: var(--display); color: var(--accent); font-size: 20px; }
+  .lead .pts { font-family: var(--display); font-size: 22px; font-variant-numeric: tabular-nums; }
+  .lead li.first .pts { color: var(--accent); }
+  .lead .sub { color: var(--muted); font-size: 14px; }
+  .host-tools { border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 10px; }
+  footer { color: var(--muted); font-size: 14px; max-width: 70ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Rare Answer <span>Twenty</span></h1>
+    <div class="tally" id="tally" hidden>Round <b id="t-round">1</b>/20 <span id="t-you">· You <b id="t-total">0</b></span></div>
+  </header>
+
+  <!-- Start screen: host a room, join a room, or one-phone mode -->
+  <section class="panel" id="home">
+    <p class="eyebrow">A low-score quiz for a roomful of players</p>
+    <p class="lede">Twenty categories. Each has many correct answers, and every correct answer carries a score from 100 down to 0 for how many people out of a hundred would have thought of it. Everyone answers each round; the lowest total after twenty rounds wins.</p>
+    <ul class="rules">
+      <li><span class="n">1</span><span>Each round, every player gives one correct answer. Answers stay hidden until the host reveals.</span></li>
+      <li><span class="n">2</span><span>Your answer's score is added to your total. A wrong answer costs 100.</span></li>
+      <li><span class="n">3</span><span>An answer scoring 0 is a rare answer and takes 5 off your total.</span></li>
+    </ul>
+    <div class="modes">
+      <div class="mode">
+        <h3>Host a game</h3>
+        <p class="note">You get a QR code and a four-letter code. Players scan it with their phone camera and join on their own phones.</p>
+        <div class="actions"><button class="primary" id="create">Create a room</button></div>
+        <div class="status err" id="create-err" hidden></div>
+      </div>
+      <div class="mode">
+        <h3>Join a game</h3>
+        <p class="note">Scanned the QR code? The room code is already filled in. Otherwise type the code the host shows you.</p>
+        <form id="join-form">
+          <input type="text" id="code" class="code" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="CODE" aria-label="Room code">
+          <input type="text" id="nick" maxlength="24" autocomplete="off" placeholder="Your name" aria-label="Your name">
+          <button class="primary" type="submit" id="join">Join</button>
+        </form>
+        <div class="status" id="join-status" hidden></div>
+      </div>
+      <div class="mode">
+        <h3>Play on this phone</h3>
+        <p class="note">No internet needed after loading. Add names, then pass the phone round so each player types their answer in private.</p>
+        <form id="local-form">
+          <input type="text" id="local-nick" maxlength="24" autocomplete="off" placeholder="Player name" aria-label="Player name">
+          <button type="submit" id="local-add">Add player</button>
+        </form>
+        <ul class="players" id="local-players"></ul>
+        <div class="actions">
+          <button class="primary" id="local-start" disabled>Start on this phone</button>
+          <button class="quiet" id="local-clear" hidden>Remove all</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Room lobby: QR, code, who has joined -->
+  <section class="panel" id="lobby" hidden>
+    <p class="eyebrow">Room</p>
+    <div class="invite">
+      <div class="qr" id="qr"></div>
+      <div style="display:grid;gap:10px">
+        <div class="bigcode" id="bigcode">····</div>
+        <p class="note">Scan the QR code with a phone camera, or open the link and type the code.</p>
+        <div class="linkline"><code id="linktext"></code><button class="quiet" id="copylink">Copy link</button></div>
+        <div class="status" id="conn">Connecting…</div>
+      </div>
+    </div>
+    <form id="name-form">
+      <input type="text" id="nick2" maxlength="24" autocomplete="off" placeholder="Your name" aria-label="Your name">
+      <button class="primary" type="submit" id="join2">Join as a player</button>
+    </form>
+    <div>
+      <p class="eyebrow">Players in the room</p>
+      <ul class="players" id="lobby-players"></ul>
+      <p class="note" id="lobby-empty">Nobody has joined yet.</p>
+    </div>
+    <div class="host-tools" id="host-lobby" hidden>
+      <p class="eyebrow">Host controls</p>
+      <div class="actions">
+        <button class="primary" id="start" disabled>Start the game</button>
+        <button id="reset-lobby">Clear all players</button>
+      </div>
+      <p class="note">You can host without playing, or join as a player too. Tap a player's × to remove them.</p>
+    </div>
+    <p class="note" id="wait-lobby" hidden>Waiting for the host to start.</p>
+    <div class="actions"><button class="quiet" id="leave">Leave the room</button></div>
+  </section>
+
+  <section class="panel" id="play" hidden>
+    <div class="round">
+      <div class="q">
+        <p class="eyebrow" id="cat-label">Round 1 of 20</p>
+        <h2 id="q-title"></h2>
+        <p class="note" id="q-note"></p>
+        <form id="form">
+          <input type="text" id="guess" autocomplete="off" placeholder="Your answer" aria-label="Your answer">
+          <button class="primary" type="submit" id="submit">Lock it in</button>
+        </form>
+        <div class="status" id="locked" hidden></div>
+        <ul class="passlist" id="passlist" hidden></ul>
+        <div id="round-wrap">
+          <p class="eyebrow">Locked in</p>
+          <ul class="players" id="round-players"></ul>
+        </div>
+        <div class="verdict" id="verdict" hidden>
+          <p class="big" id="v-big"></p>
+          <p id="v-text"></p>
+          <p class="eyebrow">This round</p>
+          <ul class="board" id="board"></ul>
+          <details id="reveal">
+            <summary>Show every answer and its score</summary>
+            <ul class="answers" id="answers"></ul>
+          </details>
+        </div>
+        <div class="host-tools" id="host-play" hidden>
+          <p class="eyebrow">Host controls</p>
+          <div class="actions">
+            <button class="primary" id="revealBtn">Reveal the scores</button>
+            <button class="primary" id="next" hidden>Next round</button>
+            <button class="quiet" id="abandon">End game early</button>
+          </div>
+        </div>
+        <p class="note" id="wait-host" hidden>Waiting for the host.</p>
+        <div class="status" id="conn2" hidden></div>
+      </div>
+      <div class="column" aria-hidden="true">
+        <div class="fill" id="fill"></div>
+        <div class="num" id="num">100</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="results" hidden>
+    <p class="eyebrow">Final standings (lowest total wins)</p>
+    <ul class="lead" id="lead"></ul>
+    <div class="host-tools" id="host-results" hidden>
+      <p class="eyebrow">Host controls</p>
+      <div class="actions">
+        <button class="primary" id="again">Play again with the same players</button>
+        <button class="quiet" id="home-btn">Back to the start</button>
+      </div>
+    </div>
+    <div class="actions" id="player-results"><button class="quiet" id="leave2">Leave the room</button></div>
+  </section>
+
+  <footer>Scores are the game's own estimates of how well known each answer is, not survey results. A strong total over twenty rounds is under 300.</footer>
+</div>
+
+<script>
+// Each round: title, note, answers as [display, score, ...aliases]. Score = estimated people out of 100 who would name it.
+const ROUNDS = [
+  { title: "Countries that share a land border with Germany", note: "Nine countries. Name one.", answers: [
+    ["France",72],["Austria",62],["Poland",60],["Switzerland",48],["Netherlands",46,"holland","the netherlands"],["Denmark",40],["Belgium",38],["Czechia",24,"czech republic","czech"],["Luxembourg",12]] },
+  { title: "US states beginning with the letter M", note: "There are eight of them.", answers: [
+    ["Michigan",55],["Montana",44],["Massachusetts",42],["Maine",38],["Minnesota",36],["Missouri",33],["Mississippi",30],["Maryland",21]] },
+  { title: "Chemical elements with a one-letter symbol", note: "Fourteen elements qualify. Give the element's name or its symbol.", answers: [
+    ["Hydrogen",80,"h"],["Oxygen",74,"o"],["Carbon",66,"c"],["Nitrogen",50,"n"],["Potassium",34,"k"],["Sulfur",30,"s","sulphur"],["Iodine",26,"i"],["Fluorine",22,"f"],["Phosphorus",20,"p"],["Uranium",18,"u"],["Boron",10,"b"],["Tungsten",8,"w","wolfram"],["Vanadium",4,"v"],["Yttrium",1,"y"]] },
+  { title: "Films that won the Academy Award for Best Picture in the 1990s", note: "The ceremonies for films released 1990 to 1999.", answers: [
+    ["Titanic",84],["Forrest Gump",70],["Schindler's List",46,"schindlers list"],["Braveheart",40],["The Silence of the Lambs",38,"silence of the lambs"],["American Beauty",30],["Shakespeare in Love",22],["Dances with Wolves",21],["Unforgiven",14],["The English Patient",11,"english patient"]] },
+  { title: "Tragedies by William Shakespeare", note: "The plays usually grouped as tragedies in the First Folio.", answers: [
+    ["Romeo and Juliet",88,"romeo & juliet"],["Hamlet",80],["Macbeth",78],["Othello",50],["King Lear",46,"lear"],["Julius Caesar",40],["Antony and Cleopatra",18,"anthony and cleopatra","antony & cleopatra"],["Titus Andronicus",8],["Coriolanus",6],["Troilus and Cressida",4],["Timon of Athens",2],["Cymbeline",1]] },
+  { title: "Member states of the European Union", note: "27 countries. Name any one.", answers: [
+    ["France",70],["Germany",68],["Spain",56],["Italy",54],["Netherlands",36,"holland","the netherlands"],["Belgium",30],["Portugal",28],["Sweden",28],["Denmark",26],["Poland",26],["Ireland",24],["Austria",22],["Greece",22],["Finland",18],["Hungary",14],["Czechia",14,"czech republic"],["Croatia",12],["Romania",11],["Bulgaria",9],["Slovakia",8],["Slovenia",7],["Lithuania",6],["Latvia",5],["Estonia",5],["Luxembourg",5],["Cyprus",4],["Malta",3]] },
+  { title: "Countries in South America", note: "Twelve sovereign states on the continent.", answers: [
+    ["Brazil",88],["Argentina",74],["Chile",50],["Colombia",46],["Peru",42],["Venezuela",30],["Uruguay",22],["Ecuador",20],["Bolivia",18],["Paraguay",14],["Guyana",4],["Suriname",2]] },
+  { title: "Signs of the Western zodiac", note: "All twelve are valid.", answers: [
+    ["Leo",56],["Scorpio",44],["Gemini",42],["Aries",40],["Cancer",40],["Taurus",38],["Virgo",36],["Libra",34],["Pisces",34],["Sagittarius",28],["Capricorn",26],["Aquarius",24]] },
+  { title: "Actors who played James Bond in the Eon film series", note: "Six actors across the official films.", answers: [
+    ["Sean Connery",82,"connery"],["Daniel Craig",76,"craig"],["Pierce Brosnan",60,"brosnan"],["Roger Moore",52,"moore"],["Timothy Dalton",24,"dalton"],["George Lazenby",9,"lazenby"]] },
+  { title: "Cities that have hosted the Summer Olympic Games", note: "Any host city from 1896 to 2024.", answers: [
+    ["London",68],["Paris",64],["Tokyo",54],["Beijing",46],["Sydney",38],["Athens",36],["Rio de Janeiro",34,"rio"],["Los Angeles",32,"la"],["Barcelona",28],["Atlanta",22],["Berlin",20],["Rome",18],["Moscow",16],["Munich",14],["Seoul",14],["Montreal",12],["Mexico City",10],["Amsterdam",8],["Melbourne",8],["Helsinki",5],["Stockholm",4],["Antwerp",2],["St. Louis",2,"saint louis","st louis"]] },
+  { title: "Feature films released by Pixar", note: "Any Pixar feature, from Toy Story onward.", answers: [
+    ["Toy Story",80],["Finding Nemo",62],["Cars",54],["Up",50],["Monsters, Inc.",46,"monsters inc"],["The Incredibles",44,"incredibles"],["Inside Out",42],["Coco",36],["WALL-E",34,"walle","wall e"],["Ratatouille",30],["Toy Story 2",22],["Toy Story 3",22],["Brave",20],["Soul",18],["Toy Story 4",16],["Luca",16],["Finding Dory",16],["Inside Out 2",14],["Incredibles 2",12],["Turning Red",12],["Elemental",10],["Cars 2",10],["Monsters University",10],["Lightyear",8],["A Bug's Life",8,"bugs life","a bugs life"],["Cars 3",6],["Onward",6],["The Good Dinosaur",5,"good dinosaur"],["Elio",4]] },
+  { title: "Prime numbers below 50", note: "Fifteen of them. Type the number.", answers: [
+    ["7",60],["3",56],["5",52],["2",46],["13",40],["11",38],["17",26],["19",22],["23",18],["29",12],["31",12],["37",8],["41",6],["43",5],["47",5]] },
+  { title: "European countries beginning with S", note: "Seven sovereign states in Europe.", answers: [
+    ["Spain",80],["Sweden",72],["Switzerland",64],["Slovakia",22],["Slovenia",20],["Serbia",18],["San Marino",6]] },
+  { title: "Harry Potter books by J. K. Rowling", note: "The seven novels in the main series.", answers: [
+    ["Philosopher's Stone",64,"the philosophers stone","philosophers stone","sorcerers stone","sorcerer's stone","harry potter and the philosophers stone","harry potter and the sorcerers stone"],["Goblet of Fire",48,"the goblet of fire","harry potter and the goblet of fire"],["Deathly Hallows",46,"the deathly hallows","harry potter and the deathly hallows"],["Chamber of Secrets",44,"the chamber of secrets","harry potter and the chamber of secrets"],["Prisoner of Azkaban",42,"the prisoner of azkaban","harry potter and the prisoner of azkaban"],["Half-Blood Prince",38,"the half blood prince","half blood prince","harry potter and the half blood prince"],["Order of the Phoenix",36,"the order of the phoenix","harry potter and the order of the phoenix"]] },
+  { title: "Letters of the Greek alphabet", note: "Twenty-four letters. Name one.", answers: [
+    ["Alpha",76],["Beta",64],["Omega",56],["Delta",50],["Gamma",42],["Pi",40],["Sigma",30],["Theta",24],["Lambda",20],["Epsilon",18],["Zeta",14],["Kappa",14],["Omicron",14],["Mu",12],["Phi",12],["Rho",10],["Tau",10],["Psi",9],["Chi",8],["Eta",7],["Iota",7],["Nu",6],["Upsilon",4],["Xi",4]] },
+  { title: "The seven deadly sins", note: "In the traditional Christian list.", answers: [
+    ["Greed",66,"avarice"],["Pride",60],["Lust",58],["Envy",50],["Gluttony",46],["Wrath",40,"anger"],["Sloth",36]] },
+  { title: "British monarchs who have reigned since 1900", note: "Seven kings and queens, including those whose reign started before 1900.", answers: [
+    ["Elizabeth II",84,"queen elizabeth","elizabeth the second","queen elizabeth ii","elizabeth 2"],["Charles III",56,"king charles","charles the third","charles 3","king charles iii"],["Victoria",40,"queen victoria"],["George VI",26,"george the sixth","king george vi","george 6"],["Edward VIII",20,"edward the eighth","edward 8","king edward viii"],["George V",16,"george the fifth","george 5","king george v"],["Edward VII",12,"edward the seventh","edward 7","king edward vii"]] },
+  { title: "Countries that have won the men's FIFA World Cup", note: "Eight nations have lifted the trophy.", answers: [
+    ["Brazil",80],["Germany",62,"west germany"],["Argentina",58],["France",52],["Italy",44],["England",40],["Spain",34],["Uruguay",14]] },
+  { title: "Countries that share a land border with France", note: "Count France's overseas departments too, and the set gets bigger than most people think.", answers: [
+    ["Spain",74],["Germany",68],["Italy",60],["Belgium",52],["Switzerland",50],["Luxembourg",24],["Monaco",18],["Andorra",14],["Brazil",2],["Suriname",1],["Netherlands",1,"the netherlands","holland"]] },
+  { title: "The noble gases", note: "Group 18 of the periodic table: seven elements.", answers: [
+    ["Helium",70],["Neon",54],["Argon",40],["Xenon",28],["Krypton",26],["Radon",16],["Oganesson",2]] },
+];
+
+const el = id => document.getElementById(id);
+function norm(s) { return String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim().replace(/^the /, ""); }
+function matchAnswer(round, guess) { const g = norm(guess); if (!g) return null; for (const a of round.answers) { if ([a[0], ...a.slice(2)].map(norm).includes(g)) return a; } return null; }
+function scoreGuess(roundIdx, guess) {
+  const r = ROUNDS[roundIdx];
+  if (guess == null || guess === "") return { hit: false, score: 100, delta: 100, display: "(no answer)", none: true };
+  const hit = matchAnswer(r, guess);
+  if (!hit) return { hit: false, score: 100, delta: 100, display: guess };
+  return { hit: true, score: hit[1], delta: hit[1] === 0 ? -5 : hit[1], display: hit[0], rare: hit[1] === 0 };
+}
+function shuffle(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+function totalFor(p, game) {
+  let t = 0; const upTo = game.phase === "reveal" || game.phase === "done" ? game.round : game.round - 1;
+  for (let i = 0; i <= upTo && i < 20; i++) t += scoreGuess(game.order[i], (p.guesses || {})[String(i)]).delta;
+  return t;
+}
+function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
+
+// ---- state -------------------------------------------------------------------
+// game: {phase: "home"|"lobby"|"guess"|"reveal"|"done", round, order}
+// players: {id: {name, guesses: {"roundNo": text}, answered}}
+let game = { phase: "home", round: 0, order: null };
+let players = {};
+let me = { id: null, isHost: false, local: false, joined: false };
+let localPlayers = {};
+let room = null;                 // {code, hostToken, ws}
+let lastRevealKey = null, lastPassKey = null, animToken = 0;
+
+const LS_LOCAL = "rare-answer-local";
+function persistLocal() { ls(LS_LOCAL, me.local && game.phase !== "home" ? JSON.stringify({ game, players }) : null); }
+
+const store = {
+  setGame(next) {
+    if (me.local) { game = next; persistLocal(); render(); return; }
+    if (!room || !room.ws || room.ws.readyState !== 1) return;
+    if (next.phase === "guess" && game.phase === "lobby") send({ type: "host", action: "start", order: next.order });
+    else if (next.phase === "reveal") send({ type: "host", action: "reveal" });
+    else if (next.phase === "guess" || next.phase === "done") send({ type: "host", action: next.phase === "done" && game.phase !== "reveal" ? "end" : "next" });
+    else if (next.phase === "lobby") send({ type: "host", action: "lobby" });
+  },
+  setGuess(id, text) {
+    if (me.local) { players[id].guesses[String(game.round)] = text; persistLocal(); render(); return; }
+    send({ type: "guess", text });
+  },
+};
+function send(obj) { if (room && room.ws && room.ws.readyState === 1) room.ws.send(JSON.stringify(obj)); }
+
+// ---- rendering ---------------------------------------------------------------
+function setColumn(v) { el("fill").style.setProperty("--h", v + "%"); el("fill").style.setProperty("--w", v + "%"); el("num").textContent = v; }
+function animateColumn(target) {
+  const token = ++animToken;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { setColumn(target); return; }
+  const start = performance.now(), dur = 1200 + (100 - target) * 8;
+  function step(t) { if (token !== animToken) return; const p = Math.min(1, (t - start) / dur); setColumn(Math.round(100 - (100 - target) * p)); if (p < 1) requestAnimationFrame(step); }
+  requestAnimationFrame(step);
+}
+function initials(name) { return (name || "?").trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase(); }
+function playerChip(id, p, extra) {
+  const li = document.createElement("li");
+  const dot = document.createElement("span"); dot.className = "dot"; dot.textContent = initials(p.name);
+  const nm = document.createElement("span"); nm.textContent = p.name || "Someone"; if (!me.local && id === me.id) { nm.className = "you"; nm.textContent += " (you)"; }
+  li.append(dot, nm); if (extra) li.append(extra); return li;
+}
+function sortedIds(obj) { return Object.keys(obj).sort((a, b) => (obj[a].name || "").localeCompare(obj[b].name || "")); }
+function hasAnswered(id) { return me.local ? (players[id].guesses || {})[String(game.round)] != null : !!players[id].answered; }
+
+function renderLocalLobby() {
+  const ids = Object.keys(localPlayers);
+  const ul = el("local-players"); ul.innerHTML = "";
+  ids.forEach(id => {
+    const x = document.createElement("button"); x.type = "button"; x.className = "x"; x.setAttribute("aria-label", "Remove " + localPlayers[id].name); x.textContent = "×";
+    x.addEventListener("click", () => { delete localPlayers[id]; renderLocalLobby(); });
+    ul.appendChild(playerChip(id, localPlayers[id], x));
+  });
+  el("local-start").disabled = ids.length === 0; el("local-clear").hidden = ids.length === 0;
+  el("local-start").textContent = ids.length ? "Start with " + ids.length + " player" + (ids.length === 1 ? "" : "s") : "Start on this phone";
+}
+
+function renderPassList(ids, key) {
+  const pl = el("passlist");
+  if (lastPassKey !== key) {
+    lastPassKey = key; pl.innerHTML = "";
+    ids.forEach(id => {
+      const li = document.createElement("li"); li.dataset.id = id;
+      const nm = document.createElement("span"); nm.className = "name"; nm.textContent = players[id].name;
+      const inp = document.createElement("input"); inp.type = "text"; inp.autocomplete = "off"; inp.placeholder = "Answer"; inp.setAttribute("aria-label", players[id].name + "'s answer"); inp.id = "pass-" + id;
+      const btn = document.createElement("button"); btn.type = "button"; btn.className = "primary"; btn.textContent = "Lock";
+      const done = document.createElement("span"); done.className = "done"; done.textContent = "Locked in ✓"; done.hidden = true;
+      const chg = document.createElement("button"); chg.type = "button"; chg.className = "quiet"; chg.textContent = "Change"; chg.hidden = true;
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); btn.click(); } });
+      btn.addEventListener("click", () => { const v = inp.value.trim(); if (!v) { inp.focus(); return; } store.setGuess(id, v); });
+      chg.addEventListener("click", () => { players[id].guesses[String(game.round)] = null; persistLocal(); render(); setTimeout(() => { const i = el("pass-" + id); if (i) i.focus(); }, 0); });
+      li.append(nm, inp, btn, done, chg); pl.appendChild(li);
+    });
+  }
+  ids.forEach(id => {
+    const li = pl.querySelector('[data-id="' + id + '"]'); if (!li) return;
+    const has = hasAnswered(id);
+    const [inp, btn, done, chg] = [li.children[1], li.children[2], li.children[3], li.children[4]];
+    inp.hidden = has; btn.hidden = has; done.hidden = !has; chg.hidden = !has;
+    if (has) inp.value = "";
+  });
+}
+
+function render() {
+  const ids = sortedIds(players);
+  const ph = game.phase;
+  el("home").hidden = ph !== "home"; el("lobby").hidden = ph !== "lobby";
+  el("play").hidden = !(ph === "guess" || ph === "reveal"); el("results").hidden = ph !== "done";
+  el("tally").hidden = !(ph === "guess" || ph === "reveal" || ph === "done"); el("t-you").hidden = me.local || !me.joined;
+  el("host-lobby").hidden = !me.isHost; el("host-play").hidden = !me.isHost; el("host-results").hidden = !me.isHost;
+  el("wait-host").hidden = me.isHost; el("wait-lobby").hidden = me.isHost; el("player-results").hidden = me.isHost || me.local;
+
+  if (ph === "home") { renderLocalLobby(); return; }
+
+  if (ph === "lobby") {
+    const ul = el("lobby-players"); ul.innerHTML = "";
+    ids.forEach(id => {
+      let x = null;
+      if (me.isHost) { x = document.createElement("button"); x.type = "button"; x.className = "x"; x.textContent = "×"; x.setAttribute("aria-label", "Remove " + players[id].name); x.addEventListener("click", () => send({ type: "host", action: "kick", pid: id })); }
+      ul.appendChild(playerChip(id, players[id], x));
+    });
+    el("lobby-empty").hidden = ids.length > 0;
+    el("start").disabled = ids.length === 0;
+    el("join2").textContent = me.joined ? "Change my name" : "Join as a player";
+    if (me.joined && players[me.id] && !el("nick2").value) el("nick2").value = players[me.id].name;
+    return;
+  }
+
+  if (ph === "done") {
+    const ranked = ids.map(id => ({ id, p: players[id], t: totalFor(players[id], game) })).sort((a, b) => a.t - b.t);
+    const ul = el("lead"); ul.innerHTML = "";
+    ranked.forEach((x, n) => {
+      const li = document.createElement("li"); if (n === 0) li.className = "first";
+      const rank = document.createElement("span"); rank.className = "rank"; rank.textContent = n + 1;
+      const nameWrap = document.createElement("div"); const nm = document.createElement("div"); nm.textContent = x.p.name + (!me.local && x.id === me.id ? " (you)" : "");
+      const g = x.p.guesses || {}; let rares = 0, misses = 0; for (let i = 0; i <= game.round && i < 20; i++) { const s = scoreGuess(game.order[i], g[String(i)]); if (s.rare) rares++; if (!s.hit) misses++; }
+      const sub = document.createElement("div"); sub.className = "sub"; sub.textContent = rares + " rare answer" + (rares === 1 ? "" : "s") + ", " + misses + " miss" + (misses === 1 ? "" : "es") + (game.round < 19 ? ", " + (game.round + 1) + " rounds played" : "");
+      nameWrap.append(nm, sub);
+      const pts = document.createElement("span"); pts.className = "pts"; pts.textContent = x.t;
+      li.append(rank, nameWrap, pts); ul.appendChild(li);
+    });
+    if (me.joined && players[me.id]) el("t-total").textContent = totalFor(players[me.id], game);
+    return;
+  }
+
+  // guess / reveal
+  const r = ROUNDS[game.order[game.round]];
+  const key = game.round + ":" + ph;
+  el("cat-label").textContent = "Round " + (game.round + 1) + " of 20"; el("t-round").textContent = game.round + 1;
+  el("q-title").textContent = r.title; el("q-note").textContent = r.note;
+  const joined = !me.local && me.joined && players[me.id];
+  const myGuess = joined ? (players[me.id].guesses || {})[String(game.round)] : undefined;
+  const mine = joined ? scoreGuess(game.order[game.round], myGuess) : null;
+  el("t-total").textContent = joined ? totalFor(players[me.id], game) : 0;
+
+  const answered = ids.filter(hasAnswered);
+  el("round-wrap").hidden = me.local;
+  if (!me.local) { const rp = el("round-players"); rp.innerHTML = ""; ids.forEach(id => { const tick = document.createElement("span"); const has = answered.includes(id); tick.className = has ? "tick" : "wait"; tick.textContent = has ? "✓" : "…"; rp.appendChild(playerChip(id, players[id], tick)); }); }
+
+  if (ph === "guess") {
+    el("verdict").hidden = true; el("revealBtn").hidden = false; el("next").hidden = true;
+    el("revealBtn").textContent = answered.length === ids.length ? "Reveal the scores" : "Reveal now (" + answered.length + " of " + ids.length + " locked in)";
+    if (me.local) {
+      el("form").hidden = true; el("locked").hidden = true; el("passlist").hidden = false;
+      renderPassList(ids, key);
+      if (lastRevealKey !== key) { animToken++; setColumn(100); lastRevealKey = key; }
+      return;
+    }
+    el("passlist").hidden = true;
+    const has = myGuess != null;
+    el("form").hidden = !joined || has; el("locked").hidden = !has;
+    if (has) { el("locked").className = "status ok"; el("locked").textContent = "Locked in: " + myGuess; }
+    if (!joined) { el("locked").hidden = false; el("locked").className = "status warn"; el("locked").textContent = me.isHost ? "You are hosting without playing." : "You are watching this game."; }
+    if (lastRevealKey !== key) { animToken++; setColumn(100); lastRevealKey = key; if (!has && joined) { el("guess").value = ""; el("guess").focus(); } }
+    return;
+  }
+
+  // reveal
+  el("form").hidden = true; el("locked").hidden = true; el("passlist").hidden = true;
+  el("revealBtn").hidden = true; el("next").hidden = false; el("next").textContent = game.round === 19 ? "Show final standings" : "Next round";
+  const minScore = Math.min(...r.answers.map(a => a[1]));
+  const v = el("verdict"); v.hidden = false;
+  const rows = ids.map(id => ({ id, p: players[id], s: scoreGuess(game.order[game.round], (players[id].guesses || {})[String(game.round)]) })).sort((a, b) => a.s.delta - b.s.delta);
+  if (mine) {
+    v.className = "verdict " + (mine.rare ? "rare" : mine.hit ? "ok" : "miss");
+    if (mine.rare) { el("v-big").textContent = "Rare answer. Nobody else said that."; el("v-text").textContent = mine.display + " scores 0, so 5 points come off your total."; }
+    else if (mine.hit) { const rarer = r.answers.filter(a => a[1] < mine.score).length; el("v-big").textContent = mine.display + " scores " + mine.score + "."; el("v-text").textContent = rarer === 0 ? "That was the rarest answer on the board." : rarer + " answer" + (rarer > 1 ? "s" : "") + " would have scored less. The best was " + minScore + "."; }
+    else if (mine.none) { el("v-big").textContent = "No answer locked in. That costs 100."; el("v-text").textContent = "The rarest answer scored " + minScore + "."; }
+    else { el("v-big").textContent = "Not on the board. That costs 100."; el("v-text").textContent = "“" + mine.display + "” is not an accepted answer here. The rarest answer scored " + minScore + "."; }
+  } else {
+    const best = rows[0];
+    v.className = "verdict " + (best && best.s.rare ? "rare" : best && best.s.hit ? "ok" : "");
+    el("v-big").textContent = best ? (best.s.hit ? best.p.name + " wins the round with " + best.s.display + " (" + best.s.score + ")." : "Nobody scored this round.") : "Scores revealed.";
+    el("v-text").textContent = "The rarest possible answer scored " + minScore + ".";
+  }
+  const board = el("board"); board.innerHTML = "";
+  rows.forEach(x => {
+    const li = document.createElement("li");
+    const nm = document.createElement("span"); nm.className = "name"; nm.textContent = x.p.name + (!me.local && x.id === me.id ? " (you)" : "");
+    const bar = document.createElement("div"); bar.className = "bar " + (x.s.rare ? "rare" : x.s.hit ? "" : "miss");
+    const fill = document.createElement("i"); const lab = document.createElement("span"); lab.textContent = x.s.display;
+    bar.append(fill, lab);
+    const s = document.createElement("span"); s.className = "s " + (x.s.rare ? "rare" : x.s.hit ? "" : "miss"); s.textContent = x.s.delta;
+    li.append(nm, bar, s); board.appendChild(li);
+    requestAnimationFrame(() => requestAnimationFrame(() => fill.style.setProperty("--w", Math.max(x.s.score, 2) + "%")));
+  });
+  const ul = el("answers"); ul.innerHTML = "";
+  [...r.answers].sort((a, b) => a[1] - b[1]).forEach(a => { const li = document.createElement("li"); li.className = a[1] === 0 ? "zero" : ""; const n = document.createElement("span"); n.textContent = a[0]; const s = document.createElement("span"); s.className = "s"; s.textContent = a[1]; li.append(n, s); ul.appendChild(li); });
+  if (lastRevealKey !== key) { lastRevealKey = key; el("reveal").open = false; animateColumn(mine ? mine.score : (rows[0] ? rows[0].s.score : minScore)); }
+}
+
+// ---- room connection ---------------------------------------------------------
+function setConn(text, cls) { for (const id of ["conn", "conn2"]) { const c = el(id); c.textContent = text; c.className = "status" + (cls ? " " + cls : ""); c.hidden = id === "conn2" && !text; } }
+function roomLink(code) { return location.origin + location.pathname + "?room=" + code; }
+function myPid() { let p = ls("rare-answer-pid"); if (!p) { p = "p" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); ls("rare-answer-pid", p); } return p; }
+
+function openRoom(code, hostToken, pendingName) {
+  code = code.toUpperCase();
+  room = { code, hostToken: hostToken || null, ws: null, closedByUser: false, pendingName: pendingName || null, retries: 0 };
+  me = { id: myPid(), isHost: !!hostToken, local: false, joined: false };
+  ls("rare-answer-room", JSON.stringify({ code, hostToken: room.hostToken }));
+  const u = new URL(location.href); u.searchParams.set("room", code); history.replaceState(null, "", u);
+  game = { phase: "lobby", round: 0, order: null }; players = {};
+  el("bigcode").textContent = code; el("linktext").textContent = roomLink(code);
+  const qr = el("qr"); qr.innerHTML = "";
+  try { const q = qrcode(0, "M"); q.addData(roomLink(code)); q.make(); qr.innerHTML = q.createSvgTag({ cellSize: 5, margin: 0, scalable: true }); qr.firstChild.style.width = "180px"; qr.firstChild.style.height = "180px"; } catch (e) { qr.textContent = "QR unavailable"; }
+  render(); connect();
+}
+function connect() {
+  if (!room || room.closedByUser) return;
+  setConn("Connecting…", "");
+  const ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/api/rooms/" + room.code + "/ws");
+  room.ws = ws;
+  ws.addEventListener("open", () => {
+    room.retries = 0;
+    ws.send(JSON.stringify({ type: "hello", pid: me.id, hostToken: room.hostToken }));
+    if (room.pendingName) { ws.send(JSON.stringify({ type: "join", name: room.pendingName })); room.pendingName = null; }
+  });
+  ws.addEventListener("message", ev => {
+    let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    if (m.type !== "state") return;
+    me.isHost = !!m.isHost; me.joined = !!m.joined;
+    players = m.players || {};
+    game = m.game.phase === "lobby" ? { phase: "lobby", round: 0, order: null } : m.game;
+    setConn(me.joined ? "Connected · you are in" : me.isHost ? "Connected · hosting" : "Connected", "ok");
+    render();
+  });
+  ws.addEventListener("close", ev => {
+    if (!room || room.ws !== ws) return;
+    if (room.closedByUser) return;
+    if (ev.code === 1006 && room.retries === 0 && game.phase === "lobby" && Object.keys(players).length === 0 && !me.joined) {
+      // first attempt failed outright: most likely a room that doesn't exist
+    }
+    room.retries++;
+    if (room.retries > 8) { setConn("Can't reach the room. Check the code and your connection, then reload.", "err"); return; }
+    setConn("Connection lost. Reconnecting…", "warn");
+    setTimeout(connect, Math.min(8000, 500 * 2 ** room.retries));
+  });
+  ws.addEventListener("error", () => {});
+}
+function leaveRoom() {
+  if (room) { room.closedByUser = true; try { room.ws && room.ws.close(); } catch (e) {} }
+  room = null; ls("rare-answer-room", null);
+  const u = new URL(location.href); u.searchParams.delete("room"); history.replaceState(null, "", u);
+  me = { id: null, isHost: false, local: false, joined: false }; players = {};
+  game = { phase: "home", round: 0, order: null }; render();
+}
+
+// ---- actions -----------------------------------------------------------------
+el("create").addEventListener("click", async () => {
+  el("create").disabled = true; el("create-err").hidden = true;
+  try {
+    const res = await fetch("/api/rooms", { method: "POST" });
+    if (!res.ok) throw new Error("bad");
+    const { code, hostToken } = await res.json();
+    openRoom(code, hostToken, null);
+  } catch (e) { el("create-err").hidden = false; el("create-err").textContent = "Could not create a room. Check your connection and try again."; }
+  el("create").disabled = false;
+});
+el("join-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const code = el("code").value.trim().toUpperCase(); const name = el("nick").value.trim();
+  if (!/^[A-Z]{4}$/.test(code)) { el("join-status").hidden = false; el("join-status").className = "status err"; el("join-status").textContent = "The room code is four letters."; el("code").focus(); return; }
+  if (!name) { el("nick").focus(); return; }
+  ls("rare-answer-name", name);
+  openRoom(code, null, name);
+});
+el("name-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = el("nick2").value.trim(); if (!name) { el("nick2").focus(); return; }
+  ls("rare-answer-name", name); send({ type: "join", name });
+});
+el("copylink").addEventListener("click", () => {
+  const t = el("linktext").textContent;
+  navigator.clipboard.writeText(t).then(() => { el("copylink").textContent = "Copied"; setTimeout(() => el("copylink").textContent = "Copy link", 1500); }).catch(() => { const r = document.createRange(); r.selectNodeContents(el("linktext")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); });
+});
+el("leave").addEventListener("click", leaveRoom);
+el("leave2").addEventListener("click", leaveRoom);
+el("home-btn").addEventListener("click", () => { if (me.local) { me.local = false; persistLocal(); game = { phase: "home", round: 0, order: null }; players = {}; me = { id: null, isHost: false, local: false, joined: false }; render(); } else leaveRoom(); });
+
+el("form").addEventListener("submit", e => {
+  e.preventDefault();
+  const raw = el("guess").value.trim(); if (!raw) { el("guess").focus(); return; }
+  store.setGuess(me.id, raw);
+});
+el("start").addEventListener("click", () => store.setGame({ phase: "guess", round: 0, order: shuffle(ROUNDS.map((_, i) => i)) }));
+el("reset-lobby").addEventListener("click", () => send({ type: "host", action: "clear" }));
+el("revealBtn").addEventListener("click", () => store.setGame({ ...game, phase: "reveal" }));
+el("next").addEventListener("click", () => store.setGame(game.round >= 19 ? { ...game, phase: "done" } : { ...game, phase: "guess", round: game.round + 1 }));
+el("abandon").addEventListener("click", () => store.setGame({ ...game, phase: "done" }));
+el("again").addEventListener("click", () => {
+  if (me.local) { Object.values(players).forEach(p => p.guesses = {}); lastPassKey = null; store.setGame({ phase: "guess", round: 0, order: shuffle(ROUNDS.map((_, i) => i)) }); return; }
+  store.setGame({ phase: "lobby", round: 0, order: null });
+});
+
+// one-phone mode
+el("local-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = el("local-nick").value.trim(); if (!name) { el("local-nick").focus(); return; }
+  localPlayers["p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)] = { name, guesses: {} };
+  el("local-nick").value = ""; el("local-nick").focus(); renderLocalLobby();
+});
+el("local-clear").addEventListener("click", () => { localPlayers = {}; renderLocalLobby(); });
+el("local-start").addEventListener("click", () => {
+  if (!Object.keys(localPlayers).length) return;
+  me = { id: null, isHost: true, local: true, joined: false };
+  players = {}; Object.entries(localPlayers).forEach(([id, p]) => players[id] = { name: p.name, guesses: {} }); lastPassKey = null;
+  store.setGame({ phase: "guess", round: 0, order: shuffle(ROUNDS.map((_, i) => i)) });
+});
+
+// ---- boot --------------------------------------------------------------------
+(function boot() {
+  const savedName = ls("rare-answer-name"); if (savedName) { el("nick").value = savedName; el("nick2").value = savedName; }
+  const urlCode = (new URLSearchParams(location.search).get("room") || "").toUpperCase();
+  let savedRoom = null; try { savedRoom = JSON.parse(ls("rare-answer-room") || "null"); } catch (e) {}
+  let savedLocal = null; try { savedLocal = JSON.parse(ls(LS_LOCAL) || "null"); } catch (e) {}
+
+  if (savedRoom && /^[A-Z]{4}$/.test(savedRoom.code) && (!urlCode || urlCode === savedRoom.code)) { openRoom(savedRoom.code, savedRoom.hostToken, null); return; }
+  if (urlCode && /^[A-Z]{4}$/.test(urlCode)) {
+    el("code").value = urlCode;
+    if (savedName) { openRoom(urlCode, null, savedName); return; }
+    render(); el("nick").focus(); return;
+  }
+  if (savedLocal && savedLocal.game && savedLocal.players && Array.isArray(savedLocal.game.order)) {
+    me = { id: null, isHost: true, local: true, joined: false }; game = savedLocal.game; players = savedLocal.players; render(); return;
+  }
+  render();
+})();
+</script>
+</body>
+</html>
